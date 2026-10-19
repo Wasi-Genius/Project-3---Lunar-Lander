@@ -59,12 +59,16 @@ void processInput()
 
     // Set horizontal acceleration from the keys based on keys. When neither is held, brake against the drift
     Vector2 acceleration = gPlayer->getAcceleration();
+    Vector2 position = gPlayer->getPosition();
+    float halfShipWidth = gPlayer->getScale().x / 2.0f;
     acceleration.x = 0.0f;
 
-    if (IsKeyDown(KEY_A))
+    if (IsKeyDown(KEY_A) && position.x > halfShipWidth)
         acceleration.x = -HORIZONTAL_ACCELERATION;
-    else if (IsKeyDown(KEY_D))
+    else if (IsKeyDown(KEY_D) && position.x < SCREEN_WIDTH - halfShipWidth)
         acceleration.x = HORIZONTAL_ACCELERATION;
+    else if (IsKeyDown(KEY_A) || IsKeyDown(KEY_D))
+        acceleration.x = 0.0f;
     else if (gPlayer->getVelocity().x > 0.0f)
         acceleration.x = -HORIZONTAL_BRAKING;
     else if (gPlayer->getVelocity().x < 0.0f)
@@ -91,6 +95,32 @@ void update()
         0,
         FIXED_TIMESTEP
     );
+
+    Vector2 position = gPlayer->getPosition();
+    Vector2 scale = gPlayer->getScale();
+    Vector2 velocity = gPlayer->getVelocity();
+    float halfShipWidth = scale.x / 2.0f;
+
+    // Keep the ship inside the screen and bounce it away from a side edge
+    if (position.x < halfShipWidth)
+    {
+        position.x = halfShipWidth;
+        if (velocity.x < 0.0f)
+            velocity.x = -velocity.x;
+    }
+    else if (position.x > SCREEN_WIDTH - halfShipWidth)
+    {
+        position.x = SCREEN_WIDTH - halfShipWidth;
+        if (velocity.x > 0.0f)
+            velocity.x = -velocity.x;
+    }
+
+    gPlayer->setPosition(position);
+    gPlayer->setVelocity(velocity);
+
+    // End the game when the ship's center passes the bottom edge
+    if (position.y > SCREEN_HEIGHT)
+        gAppStatus = TERMINATED;
 }
 
 void render()
