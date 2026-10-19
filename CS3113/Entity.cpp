@@ -206,13 +206,6 @@ void Entity::displayCollider()
         mColliderDimensions.y
     };
 
-    DrawRectangleLines(
-        colliderBox.x,      // Top-left X
-        colliderBox.y,      // Top-left Y
-        colliderBox.width,  // Width
-        colliderBox.height, // Height
-        GREEN               // Color
-    );
 }
 
 void Entity::update(
@@ -236,11 +229,15 @@ void Entity::update(
     {
         resetColliderFlags();
 
-        // Apply player input horizontally then add acceleration to velocity.
-        mVelocity.x = mMovement.x * mSpeed;
-
+        // Allow ship to drift after thrust
+        float previousVelocityX = mVelocity.x;
         mVelocity.x += mAcceleration.x * fixedTimestep;
         mVelocity.y += mAcceleration.y * fixedTimestep;
+
+        // Stop at zero instead of letting braking reverse the ship's direction
+        if ((previousVelocityX > 0.0f && mVelocity.x < 0.0f) ||
+            (previousVelocityX < 0.0f && mVelocity.x > 0.0f))
+            mVelocity.x = 0.0f;
 
         if (mIsJumping)
         {
