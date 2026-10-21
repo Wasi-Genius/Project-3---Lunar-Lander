@@ -7,6 +7,27 @@ constexpr int SCREEN_WIDTH  = 1000,
 
 constexpr char BACKGROUND_IMAGE[] = "assets/space background.png";
 constexpr char PLAYER_IMAGE[]     = "assets/space ship.png";
+constexpr char GOOD_PLATFORM_IMAGE[] = "assets/platform.png";
+constexpr char BAD_PLATFORM_IMAGE[]  = "assets/asteroid.png";
+
+constexpr int NUMBER_OF_PLATFORMS = 5;
+constexpr Vector2 GOOD_PLATFORM_POSITIONS[NUMBER_OF_PLATFORMS] = {
+    { 125.0f, 280.0f },
+    { 500.0f, 355.0f },
+    { 875.0f, 280.0f },
+    { 290.0f, 485.0f },
+    { 750.0f, 500.0f }
+};
+constexpr Vector2 BAD_PLATFORM_POSITIONS[NUMBER_OF_PLATFORMS] = {
+    { 320.0f, 220.0f },
+    { 700.0f, 220.0f },
+    { 130.0f, 425.0f },
+    { 520.0f, 505.0f },
+    { 890.0f, 420.0f }
+};
+
+constexpr Vector2 GOOD_PLATFORM_SIZE = { 140.0f, 79.0f };
+constexpr Vector2 BAD_PLATFORM_SIZE  = { 52.0f, 52.0f };
 
 // How quickly gravity pulls the ship down and thrust changes its speed
 constexpr float ACCELERATION_OF_GRAVITY = 10.0f,
@@ -20,6 +41,8 @@ float     gPreviousTicks   = 0.0f;
 
 Entity     *gPlayer = nullptr;
 Texture2D   gBackgroundTexture;
+Texture2D   gGoodPlatformTexture;
+Texture2D   gBadPlatformTexture;
 
 // Function Declarations
 void initialise();
@@ -27,6 +50,8 @@ void processInput();
 void update();
 void render();
 void shutdown();
+void drawTexture(const Texture2D *texture, const Vector2 *position,
+                 const Vector2 *scale);
 
 void initialise()
 {
@@ -34,15 +59,17 @@ void initialise()
 
     // Load the space backdrop and create the player ship at top of screen
     gBackgroundTexture = LoadTexture(BACKGROUND_IMAGE);
+    gGoodPlatformTexture = LoadTexture(GOOD_PLATFORM_IMAGE);
+    gBadPlatformTexture = LoadTexture(BAD_PLATFORM_IMAGE);
     gPlayer = new Entity(
         { SCREEN_WIDTH / 2.0f, 110.0f },
-        { 90.0f, 90.0f },
+        { 72.0f, 72.0f },
         PLAYER_IMAGE,
         PLAYER
     );
 
     // Smaller collision box than the ship so the collision area fits inside ship
-    gPlayer->setColliderDimensions({ 45.0f, 55.0f });
+    gPlayer->setColliderDimensions({ 36.0f, 44.0f });
     gPlayer->setAcceleration({ 0.0f, ACCELERATION_OF_GRAVITY });
 
     SetTargetFPS(FPS);
@@ -150,6 +177,21 @@ void render()
         WHITE
     );
 
+    // Draw the platforms both good and bad
+    for (int i = 0; i < NUMBER_OF_PLATFORMS; i++)
+    {
+        drawTexture(
+            &gGoodPlatformTexture,
+            &GOOD_PLATFORM_POSITIONS[i],
+            &GOOD_PLATFORM_SIZE
+        );
+        drawTexture(
+            &gBadPlatformTexture,
+            &BAD_PLATFORM_POSITIONS[i],
+            &BAD_PLATFORM_SIZE
+        );
+    }
+
     // Draw the ship over the background
     gPlayer->render();
 
@@ -158,10 +200,39 @@ void render()
 
 void shutdown()
 {
-    // Release the textures 
+    // Release textures 
     delete gPlayer;
     UnloadTexture(gBackgroundTexture);
+    UnloadTexture(gGoodPlatformTexture);
+    UnloadTexture(gBadPlatformTexture);
     CloseWindow();
+}
+
+// Drawing a texture helper function
+void drawTexture(const Texture2D *texture, const Vector2 *position,
+                 const Vector2 *scale)
+{
+    Rectangle textureArea = {
+        0.0f, 0.0f,
+        static_cast<float>(texture->width),
+        static_cast<float>(texture->height)
+    };
+    Rectangle destinationArea = {
+        position->x,
+        position->y,
+        scale->x,
+        scale->y
+    };
+    Vector2 originOffset = { scale->x / 2.0f, scale->y / 2.0f };
+
+    DrawTexturePro(
+        *texture,
+        textureArea,
+        destinationArea,
+        originOffset,
+        0.0f,
+        WHITE
+    );
 }
 
 int main(void)
