@@ -55,6 +55,7 @@ float gBadPlatformDirections[NUMBER_OF_PLATFORMS] = {
 
 constexpr Vector2 GOOD_PLATFORM_SIZE = { 140.0f, 79.0f };
 constexpr Vector2 BAD_PLATFORM_SIZE  = { 52.0f, 52.0f };
+constexpr Vector2 BAD_PLATFORM_COLLIDER_SIZE = { 44.0f, 38.0f };
 constexpr float GOOD_PLATFORM_SPEED = 35.0f,
                 BAD_PLATFORM_SPEED = 30.0f;
 constexpr float END_SCREEN_DURATION = 3.0f;
@@ -267,9 +268,9 @@ void update()
     {
         if (isColliding(
                 position,
-                scale,
+                gPlayer->getColliderDimensions(),
                 gBadPlatformPositions[i],
-                BAD_PLATFORM_SIZE))
+                BAD_PLATFORM_COLLIDER_SIZE))
         {
             endGame(false);
             break;
