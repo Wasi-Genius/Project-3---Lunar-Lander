@@ -302,9 +302,9 @@ void update()
         }
     }
 
-    // End the game when the ship's center passes the bottom edge
+    // Falling past the bottom fails the mission like an asteroid collision.
     if (!gGameOver && position.y > SCREEN_HEIGHT)
-        gAppStatus = TERMINATED;
+        endGame(false);
 }
 
 void render()
