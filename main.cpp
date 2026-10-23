@@ -50,6 +50,7 @@ constexpr float GOOD_PLATFORM_SPEED = 35.0f,
                 BAD_PLATFORM_SPEED = 30.0f;
 constexpr float END_SCREEN_DURATION = 3.0f;
 constexpr Vector2 END_SCREEN_SIZE = {800.0f, 400.0f};
+constexpr int MAX_FUEL_BARS = 6;
 
 // How quickly gravity pulls the ship down and thrust changes its speed
 constexpr float ACCELERATION_OF_GRAVITY = 10.0f,
@@ -63,6 +64,9 @@ float gPreviousTicks = 0.0f;
 float gEndScreenTimer = 0.0f;
 bool gGameOver = false;
 bool gMissionAccomplished = false;
+int gFuelBarsRemaining = MAX_FUEL_BARS;
+bool gLeftThrustActive = false;
+bool gRightThrustActive = false;
 
 Entity *gPlayer = nullptr;
 Texture2D gBackgroundTexture;
@@ -123,17 +127,41 @@ void processInput()
         return;
     }
 
+    // A thrust key press spends one fuel bar; holding that press keeps thrust active.
+    bool leftKeyDown = IsKeyDown(KEY_A);
+    bool rightKeyDown = IsKeyDown(KEY_D);
+
+    if (!leftKeyDown)
+        gLeftThrustActive = false;
+    if (!rightKeyDown)
+        gRightThrustActive = false;
+
+    if (IsKeyPressed(KEY_A) && gFuelBarsRemaining > 0)
+    {
+        gFuelBarsRemaining--;
+        gLeftThrustActive = true;
+        gRightThrustActive = false;
+    }
+
+    if (IsKeyPressed(KEY_D) && gFuelBarsRemaining > 0)
+    {
+        gFuelBarsRemaining--;
+        gRightThrustActive = true;
+        gLeftThrustActive = false;
+    }
+
     // Set horizontal acceleration from the keys based on keys. When neither is held, brake against the drift
     Vector2 acceleration = gPlayer->getAcceleration();
     Vector2 position = gPlayer->getPosition();
     float halfShipWidth = gPlayer->getScale().x / 2.0f;
     acceleration.x = 0.0f;
 
-    if (IsKeyDown(KEY_A) && position.x > halfShipWidth)
+    if (leftKeyDown && gLeftThrustActive && position.x > halfShipWidth)
         acceleration.x = -HORIZONTAL_ACCELERATION;
-    else if (IsKeyDown(KEY_D) && position.x < SCREEN_WIDTH - halfShipWidth)
+    else if (rightKeyDown && gRightThrustActive &&
+             position.x < SCREEN_WIDTH - halfShipWidth)
         acceleration.x = HORIZONTAL_ACCELERATION;
-    else if (IsKeyDown(KEY_A) || IsKeyDown(KEY_D))
+    else if (leftKeyDown || rightKeyDown)
         acceleration.x = 0.0f;
     else if (gPlayer->getVelocity().x > 0.0f)
         acceleration.x = -HORIZONTAL_BRAKING;
