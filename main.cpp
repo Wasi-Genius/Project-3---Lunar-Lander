@@ -51,14 +51,14 @@ Vector2 gBadPlatformPositions[NUMBER_OF_PLATFORMS] = {
     {130.0f, 425.0f},
     {520.0f, 505.0f},
     {890.0f, 420.0f}};
-constexpr float BAD_PLATFORM_LEFT_LIMITS[3] = {
-    275.0f, 655.0f, 85.0f};
-constexpr float BAD_PLATFORM_RIGHT_LIMITS[3] = {
-    365.0f, 745.0f, 175.0f};
-constexpr float BAD_PLATFORM_TOP_LIMITS[2] = {
-    465.0f, 380.0f};
-constexpr float BAD_PLATFORM_BOTTOM_LIMITS[2] = {
-    545.0f, 460.0f};
+constexpr float BAD_PLATFORM_LEFT_LIMITS[NUMBER_OF_PLATFORMS] = {
+    275.0f, 655.0f, 85.0f, 0.0f, 0.0f};
+constexpr float BAD_PLATFORM_RIGHT_LIMITS[NUMBER_OF_PLATFORMS] = {
+    365.0f, 745.0f, 175.0f, 0.0f, 0.0f};
+constexpr float BAD_PLATFORM_TOP_LIMITS[NUMBER_OF_PLATFORMS] = {
+    0.0f, 0.0f, 0.0f, 465.0f, 380.0f};
+constexpr float BAD_PLATFORM_BOTTOM_LIMITS[NUMBER_OF_PLATFORMS] = {
+    0.0f, 0.0f, 0.0f, 545.0f, 460.0f};
 float gBadPlatformDirections[NUMBER_OF_PLATFORMS] = {
     1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -251,20 +251,18 @@ void update()
     // Remaining two asteroids move vertically
     for (int i = 3; i < NUMBER_OF_PLATFORMS; i++)
     {
-        int limitIndex = i - 3;
         gBadPlatformPositions[i].y +=
             BAD_PLATFORM_SPEED * gBadPlatformDirections[i] * deltaTime;
 
-        if (gBadPlatformPositions[i].y < BAD_PLATFORM_TOP_LIMITS[limitIndex])
+        if (gBadPlatformPositions[i].y < BAD_PLATFORM_TOP_LIMITS[i])
         {
-            gBadPlatformPositions[i].y = BAD_PLATFORM_TOP_LIMITS[limitIndex];
+            gBadPlatformPositions[i].y = BAD_PLATFORM_TOP_LIMITS[i];
             gBadPlatformDirections[i] = 1.0f;
         }
         else if (gBadPlatformPositions[i].y >
-                 BAD_PLATFORM_BOTTOM_LIMITS[limitIndex])
+                 BAD_PLATFORM_BOTTOM_LIMITS[i])
         {
-            gBadPlatformPositions[i].y =
-                BAD_PLATFORM_BOTTOM_LIMITS[limitIndex];
+            gBadPlatformPositions[i].y = BAD_PLATFORM_BOTTOM_LIMITS[i];
             gBadPlatformDirections[i] = -1.0f;
         }
     }
