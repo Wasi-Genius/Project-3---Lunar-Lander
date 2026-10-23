@@ -11,23 +11,50 @@ constexpr char GOOD_PLATFORM_IMAGE[] = "assets/platform.png";
 constexpr char BAD_PLATFORM_IMAGE[]  = "assets/asteroid.png";
 
 constexpr int NUMBER_OF_PLATFORMS = 5;
-constexpr Vector2 GOOD_PLATFORM_POSITIONS[NUMBER_OF_PLATFORMS] = {
+Vector2 gGoodPlatformPositions[NUMBER_OF_PLATFORMS] = {
     { 125.0f, 280.0f },
     { 500.0f, 355.0f },
     { 875.0f, 280.0f },
     { 290.0f, 485.0f },
     { 750.0f, 500.0f }
 };
-constexpr Vector2 BAD_PLATFORM_POSITIONS[NUMBER_OF_PLATFORMS] = {
+constexpr float GOOD_PLATFORM_LEFT_LIMITS[NUMBER_OF_PLATFORMS] = {
+    80.0f, 455.0f, 830.0f, 245.0f, 705.0f
+};
+constexpr float GOOD_PLATFORM_RIGHT_LIMITS[NUMBER_OF_PLATFORMS] = {
+    170.0f, 545.0f, 920.0f, 335.0f, 795.0f
+};
+float gGoodPlatformDirections[NUMBER_OF_PLATFORMS] = {
+    1.0f, 1.0f, 1.0f, 1.0f, 1.0f
+};
+
+Vector2 gBadPlatformPositions[NUMBER_OF_PLATFORMS] = {
     { 320.0f, 220.0f },
     { 700.0f, 220.0f },
     { 130.0f, 425.0f },
     { 520.0f, 505.0f },
     { 890.0f, 420.0f }
 };
+constexpr float BAD_PLATFORM_LEFT_LIMITS[3] = {
+    275.0f, 655.0f, 85.0f
+};
+constexpr float BAD_PLATFORM_RIGHT_LIMITS[3] = {
+    365.0f, 745.0f, 175.0f
+};
+constexpr float BAD_PLATFORM_TOP_LIMITS[2] = {
+    465.0f, 380.0f
+};
+constexpr float BAD_PLATFORM_BOTTOM_LIMITS[2] = {
+    545.0f, 460.0f
+};
+float gBadPlatformDirections[NUMBER_OF_PLATFORMS] = {
+    1.0f, 1.0f, 1.0f, 1.0f, 1.0f
+};
 
 constexpr Vector2 GOOD_PLATFORM_SIZE = { 140.0f, 79.0f };
 constexpr Vector2 BAD_PLATFORM_SIZE  = { 52.0f, 52.0f };
+constexpr float GOOD_PLATFORM_SPEED = 35.0f,
+                BAD_PLATFORM_SPEED = 30.0f;
 
 // How quickly gravity pulls the ship down and thrust changes its speed
 constexpr float ACCELERATION_OF_GRAVITY = 10.0f,
@@ -113,6 +140,63 @@ void update()
     float deltaTime = ticks - gPreviousTicks;
     gPreviousTicks  = ticks;
 
+    // Move all good platforms left and right
+    for (int i = 0; i < NUMBER_OF_PLATFORMS; i++)
+    {
+        gGoodPlatformPositions[i].x +=
+            GOOD_PLATFORM_SPEED * gGoodPlatformDirections[i] * deltaTime;
+
+        if (gGoodPlatformPositions[i].x < GOOD_PLATFORM_LEFT_LIMITS[i])
+        {
+            gGoodPlatformPositions[i].x = GOOD_PLATFORM_LEFT_LIMITS[i];
+            gGoodPlatformDirections[i] = 1.0f;
+        }
+        else if (gGoodPlatformPositions[i].x > GOOD_PLATFORM_RIGHT_LIMITS[i])
+        {
+            gGoodPlatformPositions[i].x = GOOD_PLATFORM_RIGHT_LIMITS[i];
+            gGoodPlatformDirections[i] = -1.0f;
+        }
+    }
+
+    // The first three asteroids move horizontally
+    for (int i = 0; i < 3; i++)
+    {
+        gBadPlatformPositions[i].x +=
+            BAD_PLATFORM_SPEED * gBadPlatformDirections[i] * deltaTime;
+
+        if (gBadPlatformPositions[i].x < BAD_PLATFORM_LEFT_LIMITS[i])
+        {
+            gBadPlatformPositions[i].x = BAD_PLATFORM_LEFT_LIMITS[i];
+            gBadPlatformDirections[i] = 1.0f;
+        }
+        else if (gBadPlatformPositions[i].x > BAD_PLATFORM_RIGHT_LIMITS[i])
+        {
+            gBadPlatformPositions[i].x = BAD_PLATFORM_RIGHT_LIMITS[i];
+            gBadPlatformDirections[i] = -1.0f;
+        }
+    }
+
+    // Remaining two asteroids move vertically
+    for (int i = 3; i < NUMBER_OF_PLATFORMS; i++)
+    {
+        int limitIndex = i - 3;
+        gBadPlatformPositions[i].y +=
+            BAD_PLATFORM_SPEED * gBadPlatformDirections[i] * deltaTime;
+
+        if (gBadPlatformPositions[i].y < BAD_PLATFORM_TOP_LIMITS[limitIndex])
+        {
+            gBadPlatformPositions[i].y = BAD_PLATFORM_TOP_LIMITS[limitIndex];
+            gBadPlatformDirections[i] = 1.0f;
+        }
+        else if (gBadPlatformPositions[i].y >
+                 BAD_PLATFORM_BOTTOM_LIMITS[limitIndex])
+        {
+            gBadPlatformPositions[i].y =
+                BAD_PLATFORM_BOTTOM_LIMITS[limitIndex];
+            gBadPlatformDirections[i] = -1.0f;
+        }
+    }
+
     // Pass empty collision lists for now.
     gPlayer->update(
         deltaTime,
@@ -182,12 +266,12 @@ void render()
     {
         drawTexture(
             &gGoodPlatformTexture,
-            &GOOD_PLATFORM_POSITIONS[i],
+            &gGoodPlatformPositions[i],
             &GOOD_PLATFORM_SIZE
         );
         drawTexture(
             &gBadPlatformTexture,
-            &BAD_PLATFORM_POSITIONS[i],
+            &gBadPlatformPositions[i],
             &BAD_PLATFORM_SIZE
         );
     }
