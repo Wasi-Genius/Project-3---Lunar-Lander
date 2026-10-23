@@ -1,3 +1,21 @@
+/**
+
+* Author: Wasi Genius
+
+* Assignment: Lunar Lander!
+
+* Date due: [10/26/2026]
+
+* I pledge that I have completed this assignment without
+
+* collaborating with anyone else, in conformance with the
+
+* NYU School of Engineering Policies and Procedures on
+
+* Academic Misconduct.
+
+**/
+
 #include "CS3113/Entity.h"
 
 // Global Constants
@@ -11,6 +29,7 @@ constexpr char GOOD_PLATFORM_IMAGE[] = "assets/platform.png";
 constexpr char BAD_PLATFORM_IMAGE[] = "assets/asteroid.png";
 constexpr char MISSION_ACCOMPLISHED_IMAGE[] = "assets/Mission Accomplished Screen.png";
 constexpr char MISSION_FAILED_IMAGE[] = "assets/Mission Failed Screen.png";
+constexpr char FUEL_BAR_IMAGE[] = "assets/fuel bar sprite sheet.png";
 
 constexpr int NUMBER_OF_PLATFORMS = 5;
 Vector2 gGoodPlatformPositions[NUMBER_OF_PLATFORMS] = {
@@ -51,6 +70,8 @@ constexpr float GOOD_PLATFORM_SPEED = 35.0f,
 constexpr float END_SCREEN_DURATION = 3.0f;
 constexpr Vector2 END_SCREEN_SIZE = {800.0f, 400.0f};
 constexpr int MAX_FUEL_BARS = 6;
+constexpr Vector2 FUEL_BAR_SIZE = {50.0f, 150.0f};
+constexpr Vector2 FUEL_BAR_POSITION = {925.0f, 48.0f};
 
 // How quickly gravity pulls the ship down and thrust changes its speed
 constexpr float ACCELERATION_OF_GRAVITY = 10.0f,
@@ -74,6 +95,7 @@ Texture2D gGoodPlatformTexture;
 Texture2D gBadPlatformTexture;
 Texture2D gMissionAccomplishedTexture;
 Texture2D gMissionFailedTexture;
+Texture2D gFuelBarTexture;
 
 // Function Declarations
 void initialise();
@@ -95,6 +117,7 @@ void initialise()
     gBadPlatformTexture = LoadTexture(BAD_PLATFORM_IMAGE);
     gMissionAccomplishedTexture = LoadTexture(MISSION_ACCOMPLISHED_IMAGE);
     gMissionFailedTexture = LoadTexture(MISSION_FAILED_IMAGE);
+    gFuelBarTexture = LoadTexture(FUEL_BAR_IMAGE);
     gPlayer = new Entity(
         {SCREEN_WIDTH / 2.0f, 110.0f},
         {72.0f, 72.0f},
@@ -127,7 +150,7 @@ void processInput()
         return;
     }
 
-    // A thrust key press spends one fuel bar; holding that press keeps thrust active.
+    // A thrust key press spends one fuel bar, holding continues thrust
     bool leftKeyDown = IsKeyDown(KEY_A);
     bool rightKeyDown = IsKeyDown(KEY_D);
 
@@ -150,7 +173,7 @@ void processInput()
         gLeftThrustActive = false;
     }
 
-    // Set horizontal acceleration from the keys based on keys. When neither is held, brake against the drift
+    // Set horizontal acceleration based on keys. When neither is held, brake against drift
     Vector2 acceleration = gPlayer->getAcceleration();
     Vector2 position = gPlayer->getPosition();
     float halfShipWidth = gPlayer->getScale().x / 2.0f;
@@ -168,14 +191,14 @@ void processInput()
     else if (gPlayer->getVelocity().x < 0.0f)
         acceleration.x = HORIZONTAL_BRAKING;
 
-    // Keep gravity applied while allowing the horizontal acceleration to change.
+    // Keep gravity while allowing the horizontal acceleration to change
     acceleration.y = ACCELERATION_OF_GRAVITY;
     gPlayer->setAcceleration(acceleration);
 }
 
 void update()
 {
-    // Measure elapsed time that entity uses to run its fixed-step physics.
+    // Measure elapsed time to run its fixed-step physics
     float ticks = static_cast<float>(GetTime());
     float deltaTime = ticks - gPreviousTicks;
     gPreviousTicks = ticks;
@@ -377,6 +400,32 @@ void render()
             &BAD_PLATFORM_SIZE);
     }
 
+    // The sheet has six fuel levels, from least to most fuel
+    if (gFuelBarsRemaining > 0)
+    {
+        float fuelFrameWidth =
+            static_cast<float>(gFuelBarTexture.width) / MAX_FUEL_BARS;
+        int fuelFrame = gFuelBarsRemaining - 1;
+        Rectangle fuelSource = {
+            fuelFrame * fuelFrameWidth,
+            0.0f,
+            fuelFrameWidth,
+            static_cast<float>(gFuelBarTexture.height)};
+        Rectangle fuelDestination = {
+            FUEL_BAR_POSITION.x,
+            FUEL_BAR_POSITION.y,
+            FUEL_BAR_SIZE.x,
+            FUEL_BAR_SIZE.y};
+
+        DrawTexturePro(
+            gFuelBarTexture,
+            fuelSource,
+            fuelDestination,
+            {0.0f, 0.0f},
+            0.0f,
+            WHITE);
+    }
+
     // Draw the ship over the background
     gPlayer->render();
 
@@ -392,6 +441,7 @@ void shutdown()
     UnloadTexture(gBadPlatformTexture);
     UnloadTexture(gMissionAccomplishedTexture);
     UnloadTexture(gMissionFailedTexture);
+    UnloadTexture(gFuelBarTexture);
     CloseWindow();
 }
 
