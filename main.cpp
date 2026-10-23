@@ -9,6 +9,8 @@ constexpr char BACKGROUND_IMAGE[] = "assets/space background.png";
 constexpr char PLAYER_IMAGE[]     = "assets/space ship.png";
 constexpr char GOOD_PLATFORM_IMAGE[] = "assets/platform.png";
 constexpr char BAD_PLATFORM_IMAGE[]  = "assets/asteroid.png";
+constexpr char MISSION_ACCOMPLISHED_IMAGE[] = "assets/Mission Accomplished Screen.png";
+constexpr char MISSION_FAILED_IMAGE[] = "assets/Mission Failed Screen.png";
 
 constexpr int NUMBER_OF_PLATFORMS = 5;
 Vector2 gGoodPlatformPositions[NUMBER_OF_PLATFORMS] = {
@@ -55,6 +57,8 @@ constexpr Vector2 GOOD_PLATFORM_SIZE = { 140.0f, 79.0f };
 constexpr Vector2 BAD_PLATFORM_SIZE  = { 52.0f, 52.0f };
 constexpr float GOOD_PLATFORM_SPEED = 35.0f,
                 BAD_PLATFORM_SPEED = 30.0f;
+constexpr float END_SCREEN_DURATION = 3.0f;
+constexpr Vector2 END_SCREEN_SIZE = { 800.0f, 400.0f };
 
 // How quickly gravity pulls the ship down and thrust changes its speed
 constexpr float ACCELERATION_OF_GRAVITY = 10.0f,
@@ -65,11 +69,16 @@ constexpr float ACCELERATION_OF_GRAVITY = 10.0f,
 // Global Variables
 AppStatus gAppStatus       = RUNNING;
 float     gPreviousTicks   = 0.0f;
+float     gEndScreenTimer  = 0.0f;
+bool      gGameOver        = false;
+bool      gMissionAccomplished = false;
 
 Entity     *gPlayer = nullptr;
 Texture2D   gBackgroundTexture;
 Texture2D   gGoodPlatformTexture;
 Texture2D   gBadPlatformTexture;
+Texture2D   gMissionAccomplishedTexture;
+Texture2D   gMissionFailedTexture;
 
 // Function Declarations
 void initialise();
@@ -77,8 +86,9 @@ void processInput();
 void update();
 void render();
 void shutdown();
-void drawTexture(const Texture2D *texture, const Vector2 *position,
-                 const Vector2 *scale);
+void drawTexture(const Texture2D *texture, const Vector2 *position, const Vector2 *scale);
+bool isColliding(Vector2 positionA, Vector2 scaleA, Vector2 positionB, Vector2 scaleB);
+void endGame(bool missionAccomplished);
 
 void initialise()
 {
@@ -88,6 +98,8 @@ void initialise()
     gBackgroundTexture = LoadTexture(BACKGROUND_IMAGE);
     gGoodPlatformTexture = LoadTexture(GOOD_PLATFORM_IMAGE);
     gBadPlatformTexture = LoadTexture(BAD_PLATFORM_IMAGE);
+    gMissionAccomplishedTexture = LoadTexture(MISSION_ACCOMPLISHED_IMAGE);
+    gMissionFailedTexture = LoadTexture(MISSION_FAILED_IMAGE);
     gPlayer = new Entity(
         { SCREEN_WIDTH / 2.0f, 110.0f },
         { 72.0f, 72.0f },
@@ -105,7 +117,17 @@ void initialise()
 
 void processInput()
 {
-    if (IsKeyPressed(KEY_Q) || WindowShouldClose())
+    if (WindowShouldClose())
+    {
+        gAppStatus = TERMINATED;
+        return;
+    }
+
+    // Ignore gameplay controls while the result screen is shown
+    if (gGameOver)
+        return;
+
+    if (IsKeyPressed(KEY_Q))
     {
         gAppStatus = TERMINATED;
         return;
@@ -139,6 +161,15 @@ void update()
     float ticks     = static_cast<float>(GetTime());
     float deltaTime = ticks - gPreviousTicks;
     gPreviousTicks  = ticks;
+
+    // Keep the result screen visible for a few seconds before closing
+    if (gGameOver)
+    {
+        gEndScreenTimer -= deltaTime;
+        if (gEndScreenTimer <= 0.0f)
+            gAppStatus = TERMINATED;
+        return;
+    }
 
     // Move all good platforms left and right
     for (int i = 0; i < NUMBER_OF_PLATFORMS; i++)
@@ -197,7 +228,9 @@ void update()
         }
     }
 
-    // Pass empty collision lists for now.
+    Vector2 previousPosition = gPlayer->getPosition();
+
+    // Pass empty collision lists to the Entity update for collision detection
     gPlayer->update(
         deltaTime,
         nullptr,
@@ -229,8 +262,47 @@ void update()
     gPlayer->setPosition(position);
     gPlayer->setVelocity(velocity);
 
+    // Touching any part of an asteroid fails the mission
+    for (int i = 0; i < NUMBER_OF_PLATFORMS; i++)
+    {
+        if (isColliding(
+                position,
+                scale,
+                gBadPlatformPositions[i],
+                BAD_PLATFORM_SIZE))
+        {
+            endGame(false);
+            break;
+        }
+    }
+
+    // A successful landing happens when the ship lands on top of a platform
+    if (!gGameOver && velocity.y > 0.0f)
+    {
+        float previousShipBottom = previousPosition.y + scale.y / 2.0f;
+        float currentShipBottom = position.y + scale.y / 2.0f;
+
+        for (int i = 0; i < NUMBER_OF_PLATFORMS; i++)
+        {
+            float platformTop =
+                gGoodPlatformPositions[i].y - GOOD_PLATFORM_SIZE.y / 2.0f;
+            bool overlapsPlatformHorizontally =
+                fabs(position.x - gGoodPlatformPositions[i].x) <=
+                (scale.x + GOOD_PLATFORM_SIZE.x) / 2.0f;
+            bool crossedPlatformTop =
+                previousShipBottom <= platformTop &&
+                currentShipBottom >= platformTop;
+
+            if (overlapsPlatformHorizontally && crossedPlatformTop)
+            {
+                endGame(true);
+                break;
+            }
+        }
+    }
+
     // End the game when the ship's center passes the bottom edge
-    if (position.y > SCREEN_HEIGHT)
+    if (!gGameOver && position.y > SCREEN_HEIGHT)
         gAppStatus = TERMINATED;
 }
 
@@ -261,6 +333,25 @@ void render()
         WHITE
     );
 
+    if (gGameOver)
+    {
+        const Texture2D *endScreenTexture = gMissionAccomplished
+            ? &gMissionAccomplishedTexture
+            : &gMissionFailedTexture;
+        Vector2 endScreenPosition = {
+            SCREEN_WIDTH / 2.0f,
+            SCREEN_HEIGHT / 2.0f
+        };
+
+        drawTexture(
+            endScreenTexture,
+            &endScreenPosition,
+            &END_SCREEN_SIZE
+        );
+        EndDrawing();
+        return;
+    }
+
     // Draw the platforms both good and bad
     for (int i = 0; i < NUMBER_OF_PLATFORMS; i++)
     {
@@ -289,6 +380,8 @@ void shutdown()
     UnloadTexture(gBackgroundTexture);
     UnloadTexture(gGoodPlatformTexture);
     UnloadTexture(gBadPlatformTexture);
+    UnloadTexture(gMissionAccomplishedTexture);
+    UnloadTexture(gMissionFailedTexture);
     CloseWindow();
 }
 
@@ -317,6 +410,22 @@ void drawTexture(const Texture2D *texture, const Vector2 *position,
         0.0f,
         WHITE
     );
+}
+
+bool isColliding(Vector2 positionA, Vector2 scaleA,
+                 Vector2 positionB, Vector2 scaleB)
+{
+    float xDistance = fabs(positionA.x - positionB.x) - (scaleA.x + scaleB.x) / 2.0f;
+    float yDistance = fabs(positionA.y - positionB.y) - (scaleA.y + scaleB.y) / 2.0f;
+
+    return xDistance <= 0.0f && yDistance <= 0.0f;
+}
+
+void endGame(bool missionAccomplished)
+{
+    gGameOver = true;
+    gMissionAccomplished = missionAccomplished;
+    gEndScreenTimer = END_SCREEN_DURATION;
 }
 
 int main(void)
